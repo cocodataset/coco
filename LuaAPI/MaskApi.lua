@@ -13,6 +13,7 @@ The following API functions are defined:
   iou    - Compute intersection over union between masks.
   nms    - Compute non-maximum suppression between ordered masks.
   area   - Compute area of encoded masks.
+  invert - Compute inverse of encoded masks.
   toBbox - Get bounding boxes surrounding encoded masks.
   frBbox - Convert bounding boxes to encoded masks.
   frPoly - Convert polygon to encoded mask.
@@ -27,6 +28,7 @@ Usage:
   o      = MaskApi.iou( dt, gt, [iscrowd=false] )
   keep   = MaskApi.nms( dt, thr )
   a      = MaskApi.area( Rs )
+  Rs     = MaskApi.invert( Rs )
   bbs    = MaskApi.toBbox( Rs )
   Rs     = MaskApi.frBbox( bbs, h, w )
   R      = MaskApi.frPoly( poly, h, w )
@@ -131,6 +133,14 @@ MaskApi.area = function( Rs )
   libmaskapi.rleArea(Qs,n,a:data())
   MaskApi._rlesFree(Qs,n)
   return a
+end
+
+MaskApi.invert = function( Rs )
+  local Qs, n, h, w = MaskApi._rlesFrLua(Rs)
+  local Ms = MaskApi._rlesInit(n)
+  libmaskapi.rleInvert(Qs[0],Ms[0],n)
+  MaskApi._rlesFree(Qs,n)
+  return MaskApi._rlesToLua(Ms,n)
 end
 
 MaskApi.toBbox = function( Rs )
@@ -271,6 +281,7 @@ ffi.cdef[[
   void rleDecode( const RLE *R, byte *mask, siz n );
   void rleMerge( const RLE *R, RLE *M, siz n, int intersect );
   void rleArea( const RLE *R, siz n, uint *a );
+  void rleInvert( const RLE *R, RLE *M, siz n );
   void rleIou( RLE *dt, RLE *gt, siz m, siz n, byte *iscrowd, double *o );
   void rleNms( RLE *dt, siz n, uint *keep, double thr );
   void bbIou( BB dt, BB gt, siz m, siz n, byte *iscrowd, double *o );
