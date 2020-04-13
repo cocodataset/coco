@@ -147,7 +147,7 @@ class COCO:
             else:
                 anns = self.dataset['annotations']
             anns = anns if len(catIds)  == 0 else [ann for ann in anns if ann['category_id'] in catIds]
-            anns = anns if len(areaRng) == 0 else [ann for ann in anns if ann['area'] > areaRng[0] and ann['area'] < areaRng[1]]
+            anns = anns if len(areaRng) == 0 else [ann for ann in anns if ann['area'] >= areaRng[0] and ann['area'] < areaRng[1]]
         if not iscrowd == None:
             ids = [ann['id'] for ann in anns if ann['iscrowd'] == iscrowd]
         else:
@@ -225,12 +225,12 @@ class COCO:
         :param ids (int array)       : integer ids specifying img
         :return: imgs (object array) : loaded img objects
         """
-        if _isArrayLike(ids):
+        if _isArrayLike(ids) and not isinstance(ids, str):
             return [self.imgs[id] for id in ids]
-        elif type(ids) == int:
+        elif type(ids) == int or isinstance(ids, str):
             return [self.imgs[ids]]
 
-    def showAnns(self, anns, draw_bbox=False):
+    def showAnns(self, anns, ax=None, draw_bbox=False):
         """
         Display the specified annotations.
         :param anns (array of object): annotations to display
@@ -238,19 +238,26 @@ class COCO:
         """
         if len(anns) == 0:
             return 0
-        if 'segmentation' in anns[0] or 'keypoints' in anns[0]:
+        if 'bbox' in anns[0] or 'segmentation' in anns[0] or 'keypoints' in anns[0]:
             datasetType = 'instances'
         elif 'caption' in anns[0]:
             datasetType = 'captions'
         else:
             raise Exception('datasetType not supported')
         if datasetType == 'instances':
-            ax = plt.gca()
+            if ax is None:
+                ax = plt.gca()
             ax.set_autoscale_on(False)
             polygons = []
             color = []
             for ann in anns:
                 c = (np.random.random((1, 3))*0.6+0.4).tolist()[0]
+                if 'bbox' in ann and 'segmentation' not in ann:
+                    [bbox_x, bbox_y, bbox_w, bbox_h] = ann['bbox']
+                    poly = [[bbox_x, bbox_y], [bbox_x, bbox_y+bbox_h], [bbox_x+bbox_w, bbox_y+bbox_h], [bbox_x+bbox_w, bbox_y]]
+                    np_poly = np.array(poly).reshape((4,2))
+                    polygons.append(Polygon(np_poly))
+                    color.append(c)
                 if 'segmentation' in ann:
                     if type(ann['segmentation']) == list:
                         # polygon
